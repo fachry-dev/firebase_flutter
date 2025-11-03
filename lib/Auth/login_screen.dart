@@ -28,9 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       message = "eror $e";
     });
-     ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+     ScaffoldMessenger.of(context,).showSnackBar(SnackBar(content: Text(message)));
    }
   }
   @override
