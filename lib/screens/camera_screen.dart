@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_todo_firebase/Auth/login_screen.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 class CameraScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -38,6 +40,18 @@ class _CameraScreenState extends State<CameraScreen> {
       await initializeCamera;
       final image = await controller.takePicture();
 
+      final face = await detecFace(File(image.path));
+
+      if (face.isNotEmpty){
+        setState(() {
+          message = "mendeteksi wajah sebanyak : ${face.length}";
+        });
+      }else{
+        setState(() {
+          message = "tidak mendeteksi wajah";
+        });
+      }
+
       setState((){
         imageFile = image;
       });
@@ -49,6 +63,22 @@ class _CameraScreenState extends State<CameraScreen> {
     
   }
 
+  Future<List<Face>> detecFace(File imageFile) async{
+    final inputImage = InputImage.fromFile(imageFile);
+    final option = FaceDetectorOptions(
+      performanceMode: FaceDetectorMode.accurate,
+      enableLandmarks:true,
+      enableClassification:true,
+      enableContours: true,
+    );
+    final faceDetector = FaceDetector(options: option);
+
+    final faces = await faceDetector.processImage(inputImage);
+    await faceDetector.close();
+    return faces;
+  }
+
+
 
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,6 +89,7 @@ class _CameraScreenState extends State<CameraScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Text(message),
             FutureBuilder(
               future: initializeCamera,
               builder: (context, snapshot){
@@ -68,10 +99,26 @@ class _CameraScreenState extends State<CameraScreen> {
                   return Center(child: CircularProgressIndicator(),);
                 }
               },
-            )
+            ),
+            ElevatedButton(
+              onPressed: () {
+                takepicture();
+              },
+              onLongPress: () {
+                setState(() {
+                  imageFile = null;
+                });
+              },
+              child: Icon(Icons.camera),)
         ],
         ),
        ),
+
+       floatingActionButton: imageFile !=null ? FloatingActionButton(onPressed: () {
+         Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen(),));
+       },child: Icon(Icons.login),
+       ) :
+       Text("Absen wajah dul")
         );
   }
 }
