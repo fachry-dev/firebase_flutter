@@ -25,7 +25,6 @@ class MyApp extends StatelessWidget {
   final CameraDescription camera;
   MyApp({super.key, required this.camera});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

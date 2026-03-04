@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 
-// Asumsi: Anda akan meneruskan nama kategori (misalnya 'target SKL')
 class TodoScreen extends StatefulWidget {
   final String categoryName;
-
-  // Anda bisa menambahkan categoryId jika data todo difilter berdasarkan ID kategori
   const TodoScreen({super.key, required this.categoryName});
 
   @override
@@ -14,92 +11,245 @@ class TodoScreen extends StatefulWidget {
 }
 
 class _TodoScreenState extends State<TodoScreen> {
-  // Data dummy yang meniru tampilan di gambar
-  // Dalam aplikasi nyata, data ini akan diambil dari Firebase, difilter berdasarkan categoryName
-  final List<Map<String, dynamic>> dummyTasks = [
-    {'id': '1', 'title': 'MindMapping | Diniyah', 'check': false},
-    {'id': '2', 'title': 'Todo Application | Flutter', 'check': true},
-    {'id': '3', 'title': 'TalkShow | English', 'check': false},
-    {'id': '4', 'title': 'Sirah Video | Diniyah', 'check': false},
-    {'id': '5', 'title': 'MindMapping | Diniyah', 'check': false},
-    {'id': '6', 'title': 'Todo Application | Flutter', 'check': false},
-    {'id': '7', 'title': 'TalkShow | English', 'check': false},
-    {'id': '8', 'title': 'Poster Diniyah', 'check': false},
-    {'id': '9', 'title': 'News Application | Flutter', 'check': false},
+  List<Map<String, dynamic>> categories = [
+    {
+      'name': 'Target SKL',
+      'tasks': [
+        {'id': '1', 'title': 'MindMapping | Diniyah', 'check': false},
+        {'id': '2', 'title': 'Todo Application | Flutter', 'check': true},
+      ],
+    },
+    {
+      'name': 'Project IT',
+      'tasks': [
+        {'id': '3', 'title': 'Firebase Auth Setup', 'check': false},
+      ],
+    },
+    {'name': 'Diniyah', 'tasks': []},
+    {'name': 'English', 'tasks': []},
   ];
 
-  // --- Fungsi (Contoh bagaimana Anda akan mengintegrasikan Firebase) ---
-
-  // Fungsi Toggle (Contoh, karena kita menggunakan dummy data)
-  void toggleTaskCheck(String id, bool currentValue) {
-    setState(() {
-      final task = dummyTasks.firstWhere((task) => task['id'] == id);
-      task['check'] = !currentValue;
-    });
-    
-    // Di aplikasi nyata, Anda akan menjalankan update Firebase di sini:
-    /*
-    FirebaseFirestore.instance.collection('todo').doc(id).update({
-      "check": !currentValue
-    });
-    */
+  void _addNewCategory() {
+    TextEditingController categoryController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Tambah Bagian Baru"),
+        content: TextField(
+          controller: categoryController,
+          decoration: const InputDecoration(
+            hintText: "Nama Bagian (Contoh: Tahfidz)",
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (categoryController.text.isNotEmpty) {
+                setState(() {
+                  categories.add({
+                    'name': categoryController.text,
+                    'tasks': [],
+                  });
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Simpan"),
+          ),
+        ],
+      ),
+    );
   }
 
-  // Widget kustom untuk item todo
-  Widget _buildTodoItem(Map<String, dynamic> task) {
+  void _addNewTodo(int categoryIndex) {
+    TextEditingController todoController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Tambah Task di ${categories[categoryIndex]['name']}"),
+        content: TextField(
+          controller: todoController,
+          decoration: const InputDecoration(hintText: "Nama Task | Subtitle"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Batal"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (todoController.text.isNotEmpty) {
+                setState(() {
+                  categories[categoryIndex]['tasks'].add({
+                    'id': DateTime.now().toString(),
+                    'title': todoController.text,
+                    'check': false,
+                  });
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Tambah"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _removeCategory(int index) {
+    setState(() {
+      categories.removeAt(index);
+    });
+  }
+
+  void toggleTaskCheck(int catIndex, int taskIndex) {
+    setState(() {
+      categories[catIndex]['tasks'][taskIndex]['check'] =
+          !categories[catIndex]['tasks'][taskIndex]['check'];
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: const [
+          Icon(Icons.save_alt, color: Colors.green, size: 28),
+          SizedBox(width: 20),
+        ],
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 25.0),
+        itemCount: categories.length,
+        itemBuilder: (context, catIndex) {
+          final category = categories[catIndex];
+          int completed = category['tasks']
+              .where((t) => t['check'] == true)
+              .length;
+          int total = category['tasks'].length;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category['name'],
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        "$completed of $total Task",
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.add_circle_outline,
+                          color: Colors.blue,
+                        ),
+                        onPressed: () => _addNewTodo(catIndex),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        onPressed: () => _removeCategory(catIndex),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Divider(),
+              ListView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: category['tasks'].length,
+                itemBuilder: (context, taskIndex) {
+                  var task = category['tasks'][taskIndex];
+                  return _buildTodoItem(task, catIndex, taskIndex);
+                },
+              ),
+              const SizedBox(height: 30),
+            ],
+          );
+        },
+      ),
+
+      // BOTTOM NAVBAR
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  Widget _buildTodoItem(
+    Map<String, dynamic> task,
+    int catIndex,
+    int taskIndex,
+  ) {
     bool isChecked = task['check'];
-    String title = task['title'];
-    
-    // Asumsi format title adalah "Task | Subkategori"
-    List<String> parts = title.split('|');
-    String mainTitle = parts[0].trim();
-    String subTitle = parts.length > 1 ? parts[1].trim() : '';
+    List<String> parts = task['title'].split('|');
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 15.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Checkbox Kustom seperti di gambar
           GestureDetector(
-            onTap: () => toggleTaskCheck(task['id'] as String, isChecked),
+            onTap: () => toggleTaskCheck(catIndex, taskIndex),
             child: Container(
               width: 24,
               height: 24,
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: isChecked ? Colors.green : Colors.grey.shade400, 
-                  width: 2
+                  color: isChecked ? Colors.green : Colors.grey.shade400,
+                  width: 2,
                 ),
                 borderRadius: BorderRadius.circular(4),
                 color: isChecked ? Colors.green : Colors.transparent,
               ),
-              child: isChecked 
-                  ? const Icon(Icons.check, size: 18, color: Colors.white) 
+              child: isChecked
+                  ? const Icon(Icons.check, size: 18, color: Colors.white)
                   : null,
             ),
           ),
           const SizedBox(width: 15),
-          // Judul Todo
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  mainTitle,
+                  parts[0].trim(),
                   style: TextStyle(
                     fontSize: 16,
-                    color: isChecked ? Colors.black38 : Colors.black87,
                     decoration: isChecked ? TextDecoration.lineThrough : null,
+                    color: isChecked ? Colors.grey : Colors.black,
                   ),
                 ),
-                if (subTitle.isNotEmpty)
+                if (parts.length > 1)
                   Text(
-                    '| $subTitle',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isChecked ? Colors.black38 : Colors.black54,
-                    ),
+                    "| ${parts[1].trim()}",
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
               ],
             ),
@@ -109,112 +259,32 @@ class _TodoScreenState extends State<TodoScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Hitung progress dari dummy data
-    int totalTasks = dummyTasks.length;
-    int completedTasks = dummyTasks.where((task) => task['check'] == true).length;
-    String progressText = '$completedTasks of $totalTasks Task';
-
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false, // Kita buat tombol back kustom
-        title: Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-              onPressed: () => Navigator.pop(context),
-            ),
-            const Spacer(),
-            // Ikon Save/Archive di kanan atas
-            const Icon(Icons.save_alt, color: Colors.green, size: 28), 
-            const SizedBox(width: 10),
-          ],
-        ),
+  Widget _buildBottomNav() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // --- Header Kategori ---
-            Text(
-              widget.categoryName, // Gunakan nama kategori yang diteruskan
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
-              ),
-            ),
-            Text(
-              progressText,
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.black54,
-              ),
-            ),
-            const Divider(color: Colors.grey, height: 25),
-
-            // --- Daftar Todo ---
-            ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              itemCount: dummyTasks.length,
-              itemBuilder: (context, index) {
-                return _buildTodoItem(dummyTasks[index]);
-              },
-            ),
-            const SizedBox(height: 100), // Ruang di bagian bawah
-          ],
-        ),
-      ),
-      
-      // --- BOTTOM NAVIGATION BAR KUSTOM ---
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              spreadRadius: 2,
-              blurRadius: 10,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Ikon Daftar/List
-            IconButton(
-              icon: const Icon(Icons.format_list_bulleted, color: Colors.black, size: 28),
-              onPressed: () { /* Aksi List */ },
-            ),
-            // Ikon Edit/Pena
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, color: Colors.black, size: 28),
-              onPressed: () { /* Aksi Edit */ },
-            ),
-            // Ikon Tambah (+) - Tengah
-            FloatingActionButton(
-              onPressed: () {
-                // Aksi Tambah Todo (Anda bisa memanggil showDialog di sini)
-              },
-              mini: true,
-              backgroundColor: Colors.blue,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
-            // Ikon Tiga Titik/More
-            IconButton(
-              icon: const Icon(Icons.more_horiz, color: Colors.black, size: 28),
-              onPressed: () { /* Aksi More/Options */ },
-            ),
-          ],
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Icon(Icons.format_list_bulleted, size: 28),
+          const Icon(Icons.edit_outlined, size: 28),
+          FloatingActionButton(
+            onPressed: _addNewCategory,
+            mini: true,
+            backgroundColor: Colors.blue,
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+          const Icon(Icons.more_horiz, size: 28),
+        ],
       ),
     );
   }
